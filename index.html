@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMI Calculator / Amortization Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0b0c10;
+  --surface: #13151b;
+  --surface2: #1c1f28;
+  --border: #272b38;
+  --text: #e8eaf0;
+  --muted: #6b7080;
+  --faint: #2a2d3a;
+
+  --gl: #d4a843;
+  --gl-bg: #1a1608;
+  --pl: #5b8ef0;
+  --pl-bg: #080d1a;
+  --hfv: #4cbe82;
+  --hfv-bg: #081410;
+  --car: #e05c5c;
+  --car-bg: #150808;
+
+  --active: var(--gl);
+  --active-bg: var(--gl-bg);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 2.5rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(11,12,16,0.92);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.brand-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: -0.03em;
+  color: var(--active);
+  transition: color 0.4s;
+}
+.brand-sub {
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+/* ── LOAN TYPE TABS ── */
+.loan-tabs {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tab {
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 1.1rem;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tab .tab-icon { font-size: 1rem; }
+.tab:hover { border-color: var(--muted); color: var(--text); }
+.tab.active { color: #0b0c10; font-weight: 700; border-color: transparent; }
+.tab.gl.active  { background: var(--gl); }
+.tab.pl.active  { background: var(--pl); }
+.tab.hfv.active { background: var(--hfv); }
+.tab.car.active { background: var(--car); }
+
+/* ── MAIN ── */
+main { max-width: 1280px; margin: 0 auto; padding: 2.5rem 2rem 5rem; }
+
+/* Loan hero strip */
+.loan-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  animation: fadeUp 0.5s ease both;
+}
+
+.loan-heading {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.loan-heading .hl { color: var(--active); font-style: italic; transition: color 0.4s; }
+
+.loan-desc {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.6;
+  max-width: 340px;
+  text-align: right;
+}
+
+/* ── GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 1.25rem;
+  animation: fadeUp 0.5s 0.08s ease both;
+}
+
+@media(max-width:820px) {
+  .grid { grid-template-columns: 1fr; }
+  .loan-hero { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .loan-desc { text-align: left; max-width: none; }
+  header { padding: 0.9rem 1rem; flex-wrap: wrap; gap: 0.75rem; }
+  .loan-tabs { flex-wrap: wrap; }
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.75rem;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--active);
+  transition: background 0.4s;
+}
+
+.card-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1.5rem;
+}
+
+/* ── FIELDS ── */
+.field { margin-bottom: 1.35rem; }
+
+label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+label .lval { color: var(--active); font-weight: 500; transition: color 0.4s; }
+
+.input-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.input-row:focus-within { border-color: var(--active); }
+
+.pfx {
+  padding: 0 0.8rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-right: 1px solid var(--border);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+input[type="number"] {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.65rem 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text);
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 0.55rem;
+  cursor: pointer;
+  accent-color: var(--active);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  background: var(--active);
+  border-radius: 50%;
+  transition: transform 0.15s, background 0.4s;
+}
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.4); }
+
+.range-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  color: #3a3f52;
+  margin-top: 0.2rem;
+}
+
+/* Special options */
+.special-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.35rem;
+}
+.special-title {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.73rem;
+  color: var(--text);
+  margin-bottom: 0.4rem;
+  cursor: pointer;
+}
+.check-row input[type="checkbox"] {
+  accent-color: var(--active);
+  width: 13px; height: 13px;
+  cursor: pointer;
+}
+.check-row:last-child { margin-bottom: 0; }
+
+/* ── SUMMARY ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.stat {
+  background: var(--surface);
+  padding: 1rem;
+  transition: background 0.2s;
+}
+.stat:hover { background: var(--surface2); }
+
+.stat-lbl {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.stat-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.45rem;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.stat-val.hi { color: var(--active); transition: color 0.4s; }
+.stat-val.gr { color: #4cbe82; }
+.stat-val.re { color: #e05c5c; }
+
+/* Bar breakdown */
+.breakdown {
+  margin-bottom: 1.25rem;
+}
+.breakdown-title {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+.bar-track {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+.bar-p { background: #4cbe82; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.bar-i { background: var(--active); transition: width 0.5s cubic-bezier(0.4,0,0.2,1), background 0.4s; }
+
+.bar-legend {
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.68rem;
+}
+.bl-item { display: flex; align-items: center; gap: 0.4rem; }
+.bl-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* Year chart */
+.year-chart-wrap {
+  margin-bottom: 0.25rem;
+}
+.year-chart-title {
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.7rem;
+}
+.year-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 70px;
+}
+.ybar {
+  flex: 1;
+  border-radius: 2px 2px 0 0;
+  min-height: 3px;
+  position: relative;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.ybar:hover { opacity: 0.75; }
+.ybar-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.6rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 10;
+  margin-bottom: 4px;
+}
+.ybar:hover .ybar-tooltip { opacity: 1; }
+
+/* ── TABLE ── */
+.table-section { margin-top: 2rem; animation: fadeUp 0.5s 0.16s ease both; }
+
+.table-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.table-heading {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.controls { display: flex; gap: 0.5rem; }
+
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn:hover { border-color: var(--active); color: var(--active); }
+.btn.active-btn { background: var(--active); border-color: var(--active); color: #0b0c10; font-weight: 500; transition: background 0.4s, border-color 0.4s; }
+
+.table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.table-wrap::-webkit-scrollbar { width: 4px; }
+.table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+
+thead { position: sticky; top: 0; background: var(--surface2); z-index: 1; }
+
+th {
+  padding: 0.65rem 0.85rem;
+  text-align: right;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+th:first-child { text-align: left; }
+
+td {
+  padding: 0.5rem 0.85rem;
+  text-align: right;
+  border-bottom: 1px solid var(--faint);
+  transition: background 0.15s;
+}
+td:first-child { text-align: left; color: var(--muted); }
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+
+.td-p { color: #4cbe82; }
+.td-i { color: var(--active); transition: color 0.4s; }
+.td-b { font-family: 'Instrument Serif', serif; font-size: 0.9rem; }
+
+.more-row td {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  padding: 0.85rem;
+}
+
+/* ── EXPORT ── */
+.export-bar {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  animation: fadeUp 0.5s 0.22s ease both;
+}
+
+.export-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.55rem 1.2rem;
+  border-radius: 3px;
+  border: 1px solid var(--active);
+  color: var(--active);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.export-btn:hover { background: var(--active); color: #0b0c10; }
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="brand-name" id="brandName">LG</span>
+    <span class="brand-sub">Amortization Calculator</span>
+  </div>
+  <div class="loan-tabs">
+    <button class="tab gl active" onclick="setLoan('gl')">
+      <span class="tab-icon">🪙</span> Gold Loan
+    </button>
+    <button class="tab pl" onclick="setLoan('pl')">
+      <span class="tab-icon">👤</span> Personal
+    </button>
+    <button class="tab hfv" onclick="setLoan('hfv')">
+      <span class="tab-icon">🏠</span> Home / HFV
+    </button>
+    <button class="tab car" onclick="setLoan('car')">
+      <span class="tab-icon">🚗</span> Car Loan
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="loan-hero">
+    <div class="loan-heading" id="loanHeading">
+      Gold Loan <span class="hl">Amortization</span>
+    </div>
+    <div class="loan-desc" id="loanDesc">
+      Short-term secured loan against gold jewellery or coins. Typically low interest, 6–24 month tenure. Bullet repayment or EMI options available.
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- ── LEFT: Inputs ── -->
+    <div class="card">
+      <div class="card-label">Loan Parameters</div>
+
+      <div class="field">
+        <label>Loan Amount <span class="lval" id="lv-amount">₹5,00,000</span></label>
+        <div class="input-row">
+          <span class="pfx">₹</span>
+          <input type="number" id="principal" value="500000" min="1000" step="1000" oninput="syncRange('principal');calculate()">
+        </div>
+        <input type="range" id="principalRange" min="10000" max="5000000" step="10000" value="500000" oninput="syncNum('principal');calculate()">
+        <div class="range-ends"><span id="pMin">₹10K</span><span id="pMax">₹50L</span></div>
+      </div>
+
+      <div class="field">
+        <label>Annual Interest Rate <span class="lval" id="lv-rate">8.5%</span></label>
+        <div class="input-row">
+          <span class="pfx">% p.a.</span>
+          <input type="number" id="rate" value="8.5" min="1" max="30" step="0.1" oninput="syncRange('rate');calculate()">
+        </div>
+        <input type="range" id="rateRange" min="1" max="30" step="0.1" value="8.5" oninput="syncNum('rate');calculate()">
+        <div class="range-ends"><span id="rMin">1%</span><span id="rMax">30%</span></div>
+      </div>
+
+      <div class="field">
+        <label>Tenure <span class="lval" id="lv-term">12 months</span></label>
+        <div class="input-row">
+          <span class="pfx" id="termUnit">Months</span>
+          <input type="number" id="term" value="12" min="1" max="360" step="1" oninput="syncRange('term');calculate()">
+        </div>
+        <input type="range" id="termRange" min="1" max="24" step="1" value="12" oninput="syncNum('term');calculate()">
+        <div class="range-ends"><span id="tMin">1 mo</span><span id="tMax">24 mo</span></div>
+      </div>
+
+      <!-- Loan-specific options -->
+      <div class="special-box" id="specialBox">
+        <div class="special-title" id="specialTitle">Gold Loan Options</div>
+        <label class="check-row" id="opt1Row">
+          <input type="checkbox" id="opt1" onchange="calculate()">
+          <span id="opt1Label">Bullet Repayment (interest only, principal at end)</span>
+        </label>
+        <label class="check-row" id="opt2Row">
+          <input type="checkbox" id="opt2" onchange="calculate()">
+          <span id="opt2Label">Include Processing Fee (0.5%)</span>
+        </label>
+        <label class="check-row" id="opt3Row">
+          <input type="checkbox" id="opt3" onchange="calculate()">
+          <span id="opt3Label">GST on Interest (18%)</span>
+        </label>
+      </div>
+
+    </div>
+
+    <!-- ── RIGHT: Summary + Charts ── -->
+    <div class="card">
+      <div class="card-label">Summary</div>
+
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="stat-lbl">Monthly EMI</div>
+          <div class="stat-val hi" id="s-emi">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Total Payment</div>
+          <div class="stat-val" id="s-total">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Total Interest</div>
+          <div class="stat-val re" id="s-interest">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat-lbl">Principal</div>
+          <div class="stat-val gr" id="s-principal">—</div>
+        </div>
+        <div class="stat" id="stat-fee-box" style="display:none">
+          <div class="stat-lbl">Processing Fee</div>
+          <div class="stat-val" id="s-fee" style="color:#a0a8c0">—</div>
+        </div>
+        <div class="stat" id="stat-gst-box" style="display:none">
+          <div class="stat-lbl">GST on Interest</div>
+          <div class="stat-val" id="s-gst" style="color:#a0a8c0">—</div>
+        </div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-title">Principal vs Interest Split</div>
+        <div class="bar-track">
+          <div class="bar-p" id="barP" style="width:50%"></div>
+          <div class="bar-i" id="barI" style="width:50%"></div>
+        </div>
+        <div class="bar-legend">
+          <div class="bl-item"><div class="bl-dot" style="background:#4cbe82"></div><span id="pctP">—% Principal</span></div>
+          <div class="bl-item"><div class="bl-dot" style="background:var(--active)" id="iDot"></div><span id="pctI">—% Interest</span></div>
+        </div>
+      </div>
+
+      <div class="year-chart-wrap">
+        <div class="year-chart-title">Year-by-Year Interest Paid</div>
+        <div class="year-bars" id="yearBars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABLE ── -->
+  <div class="table-section">
+    <div class="table-top">
+      <div class="table-heading">Repayment Schedule</div>
+      <div class="controls">
+        <button class="btn active-btn" id="viewMonthly" onclick="setView('monthly')">Monthly</button>
+        <button class="btn" id="viewYearly" onclick="setView('yearly')">Yearly</button>
+        <button class="btn" id="toggleAll" onclick="toggleAll()">Show All</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th id="thPeriod">#</th>
+            <th>Payment</th>
+            <th>Principal</th>
+            <th>Interest</th>
+            <th>Balance</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="export-bar">
+    <button class="export-btn" onclick="exportCSV()">⬇ Export CSV</button>
+<!--     <button class="export-btn" onclick="window.print()">🖨 Print</button> -->
+  </div>
+</main>
+
+<script>
+// ── Loan presets ──────────────────────────────────────────────
+const PRESETS = {
+  gl: {
+    name: 'Gold Loan',
+    icon: '🪙',
+    color: '#d4a843',
+    colorBg: '#1a1608',
+    heading: 'Gold Loan',
+    desc: 'Short-term secured loan against gold jewellery or coins. Typically low interest, 6–24 month tenure. Bullet repayment or EMI options available.',
+    principal: 500000, pMin: 10000, pMax: 5000000,
+    rate: 8.5, rMin: 7, rMax: 18,
+    term: 12, tMin: 1, tMax: 24, termInMonths: true,
+    opts: [
+      'Bullet Repayment (interest only, principal at end)',
+      'Include Processing Fee (0.5%)',
+      'GST on Interest (18%)'
+    ],
+    optTitle: 'Gold Loan Options'
+  },
+  pl: {
+    name: 'Personal Loan',
+    icon: '👤',
+    color: '#5b8ef0',
+    colorBg: '#080d1a',
+    heading: 'Personal Loan',
+    desc: 'Unsecured loan for any personal expense — medical, travel, wedding, or debt consolidation. No collateral needed.',
+    principal: 300000, pMin: 10000, pMax: 4000000,
+    rate: 12, rMin: 10, rMax: 24,
+    term: 36, tMin: 12, tMax: 84, termInMonths: true,
+    opts: [
+      'Include Processing Fee (2%)',
+      'Prepayment Penalty (4% of outstanding)',
+      'Insurance Premium (1.5% of loan)'
+    ],
+    optTitle: 'Personal Loan Options'
+  },
+  hfv: {
+    name: 'Home / HFV',
+    icon: '🏠',
+    color: '#4cbe82',
+    colorBg: '#081410',
+    heading: 'Home / Housing Finance',
+    desc: 'Long-term secured loan for purchasing or constructing property. Lowest interest rates among consumer loans, up to 30 years tenure.',
+    principal: 5000000, pMin: 500000, pMax: 50000000,
+    rate: 8.5, rMin: 6.5, rMax: 14,
+    term: 20, tMin: 1, tMax: 30, termInMonths: false,
+    opts: [
+      'Include Processing Fee (0.5%)',
+      'Top-up Loan (add ₹5L at current rate)',
+      'Tax Benefit Display (80C + 24b)'
+    ],
+    optTitle: 'Home Loan Options'
+  },
+  car: {
+    name: 'Car Loan',
+    icon: '🚗',
+    color: '#e05c5c',
+    colorBg: '#150808',
+    heading: 'Car / Auto Loan',
+    desc: 'Secured auto finance for new or used vehicles. Fixed EMI, typically 1–7 year tenure. Depreciation considered for resale vs. loan balance.',
+    principal: 800000, pMin: 100000, pMax: 10000000,
+    rate: 9.5, rMin: 7, rMax: 16,
+    term: 60, tMin: 12, tMax: 84, termInMonths: true,
+    opts: [
+      'Include Road Tax & Insurance (8% of loan)',
+      'Include Processing Fee (1%)',
+      'Show Depreciation vs. Balance'
+    ],
+    optTitle: 'Car Loan Options'
+  }
+};
+
+let currentLoan = 'gl';
+let showAll = false;
+let viewMode = 'monthly';
+let scheduleData = [];
+
+// ── Set loan type ──────────────────────────────────────────────
+function setLoan(type) {
+  currentLoan = type;
+  const p = PRESETS[type];
+
+  // CSS vars
+  document.documentElement.style.setProperty('--active', p.color);
+  document.documentElement.style.setProperty('--active-bg', p.colorBg);
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.tab.${type}`).classList.add('active');
+
+  // Hero
+  document.getElementById('loanHeading').innerHTML = `${p.heading} <span class="hl">Amortization</span>`;
+  document.getElementById('loanDesc').textContent = p.desc;
+
+  // Inputs
+  const prin = document.getElementById('principal');
+  const prinR = document.getElementById('principalRange');
+  prin.value = p.principal; prinR.min = p.pMin; prinR.max = p.pMax; prinR.value = p.principal;
+  document.getElementById('pMin').textContent = fmtShort(p.pMin);
+  document.getElementById('pMax').textContent = fmtShort(p.pMax);
+
+  document.getElementById('rate').value = p.rate;
+  const rR = document.getElementById('rateRange');
+  rR.min = p.rMin; rR.max = p.rMax; rR.value = p.rate;
+  document.getElementById('rMin').textContent = p.rMin + '%';
+  document.getElementById('rMax').textContent = p.rMax + '%';
+
+  document.getElementById('term').value = p.term;
+  const tR = document.getElementById('termRange');
+  tR.min = p.tMin; tR.max = p.tMax; tR.value = p.term;
+  const tUnit = p.termInMonths ? 'mo' : 'yr';
+  document.getElementById('tMin').textContent = p.tMin + ' ' + tUnit;
+  document.getElementById('tMax').textContent = p.tMax + ' ' + tUnit;
+  document.getElementById('termUnit').textContent = p.termInMonths ? 'Months' : 'Years';
+
+  // Options
+  document.getElementById('specialTitle').textContent = p.optTitle;
+  ['opt1','opt2','opt3'].forEach((id,i) => {
+    document.getElementById(id+'Label').textContent = p.opts[i];
+    document.getElementById(id).checked = false;
+  });
+
+  // iDot color
+  document.getElementById('iDot').style.background = p.color;
+
+  calculate();
+}
+
+// ── Calculate ──────────────────────────────────────────────────
+function calculate() {
+  const p = PRESETS[currentLoan];
+  let P = parseFloat(document.getElementById('principal').value) || 0;
+  const annualRate = parseFloat(document.getElementById('rate').value) || 0;
+  let termVal = parseInt(document.getElementById('term').value) || 1;
+  const n = p.termInMonths ? termVal : termVal * 12; // total months
+  const r = annualRate / 100 / 12;
+
+  // Opt checks
+  const opt1 = document.getElementById('opt1').checked;
+  const opt2 = document.getElementById('opt2').checked;
+  const opt3 = document.getElementById('opt3').checked;
+
+  // Processing fee
+  let feeRate = { gl: 0.005, pl: 0.02, hfv: 0.005, car: 0.01 }[currentLoan];
+  let extraRate = { gl: 0, pl: 0.015, hfv: 0, car: 0.08 }[currentLoan]; // insurance etc
+
+  const processingFee = opt2 ? P * feeRate : 0;
+  const extraFee = opt1 && currentLoan === 'car' ? P * extraRate : 
+                   opt1 && currentLoan === 'pl'  ? 0 : 0;
+  // for car, opt1 = road tax+insurance
+  const carExtra = (currentLoan === 'car' && opt1) ? P * 0.08 : 0;
+  const plInsurance = (currentLoan === 'pl' && opt3) ? P * 0.015 : 0;
+
+  // Schedule
+  scheduleData = [];
+  let balance = P;
+
+  if (currentLoan === 'gl' && opt1) {
+    // Bullet: interest only each month, principal at end
+    const monthlyInterest = balance * r;
+    for (let i = 1; i <= n; i++) {
+      const isLast = i === n;
+      const payment = isLast ? monthlyInterest + P : monthlyInterest;
+      const principalPaid = isLast ? P : 0;
+      const newBalance = isLast ? 0 : P;
+      scheduleData.push({ period: i, payment, principal: principalPaid, interest: monthlyInterest, balance: newBalance });
+    }
+  } else {
+    // Standard EMI
+    let emi;
+    if (r === 0) { emi = P / n; }
+    else { emi = P * (r * Math.pow(1+r,n)) / (Math.pow(1+r,n) - 1); }
+
+    for (let i = 1; i <= n; i++) {
+      const interestPaid = balance * r;
+      let principalPaid = emi - interestPaid;
+      if (principalPaid > balance) principalPaid = balance;
+      const payment = principalPaid + interestPaid;
+      balance = Math.max(0, balance - principalPaid);
+      let intDisp = interestPaid;
+      if ((currentLoan === 'gl' && opt3)) intDisp *= 1.18; // GST on interest
+      scheduleData.push({ period: i, payment: principalPaid + intDisp, principal: principalPaid, interest: intDisp, balance });
+    }
+  }
+
+  // Totals
+  const totalInterest = scheduleData.reduce((s,r) => s + r.interest, 0);
+  const totalPrincipal = scheduleData.reduce((s,r) => s + r.principal, 0);
+  const totalPayment = totalInterest + totalPrincipal + processingFee + carExtra + plInsurance;
+  const emi = scheduleData[0]?.payment || 0;
+
+  // Stats
+  document.getElementById('s-emi').textContent = fmt(emi);
+  document.getElementById('s-total').textContent = fmt(totalPayment);
+  document.getElementById('s-interest').textContent = fmt(totalInterest);
+  document.getElementById('s-principal').textContent = fmt(P);
+
+  // Optional stat boxes
+  const feeBox = document.getElementById('stat-fee-box');
+  const gstBox = document.getElementById('stat-gst-box');
+  feeBox.style.display = (opt2 || (currentLoan==='car'&&opt1)) ? '' : 'none';
+  document.getElementById('s-fee').textContent = fmt(processingFee + carExtra);
+  gstBox.style.display = (currentLoan==='gl'&&opt3) ? '' : 'none';
+
+  // Label values
+  document.getElementById('lv-amount').textContent = fmt(P);
+  document.getElementById('lv-rate').textContent = annualRate + '%';
+  const tLbl = p.termInMonths ? termVal + (termVal===1?' month':' months') : termVal + (termVal===1?' year':' years');
+  document.getElementById('lv-term').textContent = tLbl;
+
+  // Bar
+  const pct = totalPayment > 0 ? totalPrincipal / totalPayment * 100 : 50;
+  document.getElementById('barP').style.width = pct + '%';
+  document.getElementById('barI').style.width = (100 - pct) + '%';
+  document.getElementById('pctP').textContent = Math.round(pct) + '% Principal';
+  document.getElementById('pctI').textContent = Math.round(100-pct) + '% Interest';
+
+  // Year chart
+  buildYearChart();
+
+  // Table
+  buildTable();
+}
+
+function buildYearChart() {
+  const container = document.getElementById('yearBars');
+  container.innerHTML = '';
+  if (!scheduleData.length) return;
+
+  // Group by year
+  const years = {};
+  scheduleData.forEach((row, i) => {
+    const yr = Math.floor(i / 12) + 1;
+    if (!years[yr]) years[yr] = 0;
+    years[yr] += row.interest;
+  });
+  const yKeys = Object.keys(years);
+  const maxVal = Math.max(...Object.values(years));
+
+  yKeys.forEach(yr => {
+    const pct = (years[yr] / maxVal) * 100;
+    const div = document.createElement('div');
+    div.className = 'ybar';
+    div.style.height = pct + '%';
+    div.style.background = `var(--active)`;
+    div.style.opacity = '0.7';
+    div.innerHTML = `<div class="ybar-tooltip">Yr ${yr}: ${fmt(years[yr])}</div>`;
+    container.appendChild(div);
+  });
+}
+
+function buildTable() {
+  const body = document.getElementById('tbody');
+  body.innerHTML = '';
+  const p = PRESETS[currentLoan];
+
+  if (viewMode === 'yearly') {
+    // Group months into years
+    const years = {};
+    scheduleData.forEach((row, i) => {
+      const yr = Math.floor(i / 12) + 1;
+      if (!years[yr]) years[yr] = { payment:0, principal:0, interest:0, balance:0 };
+      years[yr].payment   += row.payment;
+      years[yr].principal += row.principal;
+      years[yr].interest  += row.interest;
+      years[yr].balance    = row.balance;
+    });
+    document.getElementById('thPeriod').textContent = 'Year';
+
+    Object.keys(years).forEach(yr => {
+      const d = years[yr];
+      appendRow(body, 'Yr ' + yr, d.payment, d.principal, d.interest, d.balance);
+    });
+  } else {
+    document.getElementById('thPeriod').textContent = '#';
+    const limit = showAll ? scheduleData.length : Math.min(24, scheduleData.length);
+    scheduleData.slice(0, limit).forEach(row => {
+      appendRow(body, row.period, row.payment, row.principal, row.interest, row.balance);
+    });
+    if (!showAll && scheduleData.length > 24) {
+      const tr = document.createElement('tr');
+      tr.className = 'more-row';
+      tr.innerHTML = `<td colspan="5">… ${scheduleData.length - 24} more rows — click "Show All"</td>`;
+      body.appendChild(tr);
+    }
+  }
+}
+
+function appendRow(body, period, payment, principal, interest, balance) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${period}</td>
+    <td>${fmt(payment)}</td>
+    <td class="td-p">${fmt(principal)}</td>
+    <td class="td-i">${fmt(interest)}</td>
+    <td class="td-b">${fmt(balance)}</td>
+  `;
+  body.appendChild(tr);
+}
+
+// ── View toggles ──────────────────────────────────────────────
+function setView(mode) {
+  viewMode = mode;
+  document.getElementById('viewMonthly').classList.toggle('active-btn', mode==='monthly');
+  document.getElementById('viewYearly').classList.toggle('active-btn', mode==='yearly');
+  buildTable();
+}
+
+function toggleAll() {
+  showAll = !showAll;
+  document.getElementById('toggleAll').textContent = showAll ? 'Show Less' : 'Show All';
+  buildTable();
+}
+
+// ── Sync sliders ──────────────────────────────────────────────
+function syncRange(id) {
+  document.getElementById(id+'Range').value = document.getElementById(id).value;
+}
+function syncNum(id) {
+  document.getElementById(id).value = document.getElementById(id+'Range').value;
+}
+
+// ── Format helpers ────────────────────────────────────────────
+function fmt(v) {
+  return '₹' + Math.round(v).toLocaleString('en-IN');
+}
+function fmtShort(v) {
+  if (v >= 10000000) return '₹' + (v/10000000) + 'Cr';
+  if (v >= 100000)   return '₹' + (v/100000) + 'L';
+  if (v >= 1000)     return '₹' + (v/1000) + 'K';
+  return '₹' + v;
+}
+
+// ── Export CSV ────────────────────────────────────────────────
+function exportCSV() {
+  const p = PRESETS[currentLoan];
+  let csv = 'Period,Payment (₹),Principal (₹),Interest (₹),Balance (₹)\n';
+  scheduleData.forEach(r => {
+    csv += `${r.period},${Math.round(r.payment)},${Math.round(r.principal)},${Math.round(r.interest)},${Math.round(r.balance)}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${p.name.replace(/ /g,'-')}-amortization.csv`;
+  a.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────
+setLoan('gl');
+</script>
+</body>
+</html>
